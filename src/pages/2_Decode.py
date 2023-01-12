@@ -6,7 +6,7 @@ import io
 
 from PIL import Image, UnidentifiedImageError
 
-from steganograf import ImageDecoder, config
+from utils import config, ImageDecoder
 
 
 def get_image_info(image: Image):

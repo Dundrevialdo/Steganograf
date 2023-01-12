@@ -8,7 +8,7 @@ import pandas as pd
 
 from PIL import Image, UnidentifiedImageError
 
-from steganograf import ImageEncoder, config
+from utils import config, ImageEncoder
 
 
 def parse_args(mock_args=None):

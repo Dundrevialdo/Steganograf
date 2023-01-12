@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 
-from steganograf import config
+from utils import config
 
 
 def decode(encoded_image: Image, bits=config.BITS_NO):

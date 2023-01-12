@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 
-from steganograf import config
+from utils import config
 
 
 class InsufficientContainerImageShapeException(Exception):
