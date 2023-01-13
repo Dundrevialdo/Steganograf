@@ -8,36 +8,49 @@ class InsufficientContainerImageShapeException(Exception):
     pass
 
 
-def encode(dest_image: Image, hide_image: Image, bits=config.BITS_NO):
-    if dest_image.mode != 'RGB':
-        dest_image = dest_image.convert(mode='RGB')
-    if hide_image.mode != 'RGB':
-        hide_image = hide_image.convert(mode='RGB')
+class NoAsciiCharsInSecretException(Exception):
+    pass
 
-    hide_arr = np.asarray(hide_image)
-    dest_arr = np.asarray(dest_image)
 
-    if dest_arr.shape == hide_arr.shape:
-        pass
-    elif dest_arr.shape[0] < hide_arr.shape[0] or dest_arr.shape[1] < hide_arr.shape[1]:
+def _number_to_array(number):
+    arr = (bin(number)[2:].zfill(config.secret_bits_len))
+    arr = np.array(list(map(int, [*arr])))
+    return arr
+
+
+def _text_to_array(text):
+    text_binary = [format(ord(char), '08b') for char in text if ord(char) <= 255]
+    arr = np.array(list(map(int, [*(''.join(text_binary))])))
+    return arr
+
+
+def encode(container_image: Image, secret: str):
+    mask = 0b11111110
+
+    if container_image.mode != 'RGB':
+        container_image = container_image.convert(mode='RGB')
+
+    container_arr = np.asarray(container_image)
+    container_arr_flat = container_arr.flatten()
+
+    secret_arr = _text_to_array(secret)
+    secret_len = secret_arr.size / config.ascii_bits_len
+    if 0 == secret_len:
+        raise NoAsciiCharsInSecretException('No ASCII characters found in the secret message')
+
+    secret_len_arr = _number_to_array(secret_len)
+    entry_word_arr = _text_to_array(config.entry_word)
+
+    encode_message_arr = np.hstack((entry_word_arr, secret_len_arr, secret_arr))
+
+    if container_arr_flat.size < encode_message_arr.size:
         raise InsufficientContainerImageShapeException('Container image is too small')
-    else:
-        hide_arr = np.insert(hide_arr, 0, config.signal_image, axis=1)
-        hide_arr = np.insert(hide_arr, 0, config.signal_image, axis=0)
-        hide_arr[0, -1] = config.signal_end
-        hide_arr[-1, 0] = config.signal_end
 
-    box = (0, 0, *reversed(hide_arr.shape[:2]))
+    container_arr_flat[:encode_message_arr.size] = \
+        (container_arr_flat[:encode_message_arr.size] & mask) \
+        + encode_message_arr
+    container_arr = container_arr_flat.reshape(container_arr.shape)
 
-    region = dest_image.crop(box)
-    region_arr = np.asarray(region)
+    container_image = Image.fromarray(container_arr)
 
-    hide_arr = hide_arr >> (8-bits)
-
-    mask = 0b11111111 ^ (0b11111111 >> (8-bits))
-    region_arr = (mask & region_arr) + hide_arr
-
-    result_region = Image.fromarray(region_arr)
-    dest_image.paste(result_region, box)
-
-    return dest_image
+    return container_image

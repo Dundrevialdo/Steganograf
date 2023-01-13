@@ -3,56 +3,49 @@ from PIL import Image
 
 from utils import config
 
-MASK = 0b11111110
-secret_bits_len = 8  # 8 bits is 255 characters
-ascii_bits_len = 8  # each ASCII character is 8 bits long
 
-
-class InsufficientContainerImageShapeException(Exception):
+class NoSecretTextException(Exception):
     pass
 
 
-class NoAsciiCharsInSecretException(Exception):
-    pass
+def _array_to_string(arr):
+    mask_inv = 0b1
+    arr_as_string = ''.join(map(str, list(arr & mask_inv)))
+    return arr_as_string
 
 
-def number_to_array(number):
-    arr = (bin(number)[2:].zfill(secret_bits_len))
-    arr = np.array(list(map(int, [*arr])))
-    return arr
+def _array_to_number(arr):
+    arr_as_string = _array_to_string(arr)
+    output = int(arr_as_string, 2)
+    return output
 
 
-def text_to_array(text):
-    text_binary = [format(ord(char), '08b') for char in text if ord(char) <= 255]
-    arr = np.array(list(map(int, [*(''.join(text_binary))])))
-    return arr
+def _array_to_text(arr):
+    arr_as_string = _array_to_string(arr)
+    output = ''
+    for i in range(0, len(arr_as_string), 8):
+        output += chr(int(arr_as_string[i:i+8], 2))
+    return output
 
 
-def encode(container_image: Image, secret: str):
-    if container_image.mode != 'RGB':
-        container_image = container_image.convert(mode='RGB')
-
+def decode(container_image: Image):
     container_arr = np.asarray(container_image)
     container_arr_flat = container_arr.flatten()
 
-    secret_arr = text_to_array(secret)
-    secret_len = secret_arr.size / ascii_bits_len
-    if 0 == secret_len:
-        raise NoAsciiCharsInSecretException('No ASCII characters found in the secret message')
+    # check if entry word is present
+    entry_word_size = len(config.entry_word) * config.ascii_bits_len
+    entry_word_arr = container_arr_flat[:entry_word_size]
+    if config.entry_word != _array_to_text(entry_word_arr):
+        raise NoSecretTextException('No secret text found in the image')
 
-    secret_len_arr = number_to_array(secret_len)
-    entry_word_arr = text_to_array(config.entry_word)
+    # read length of the secret message
+    length_arr = container_arr_flat[entry_word_size:config.secret_bits_len]
+    secret_len = _array_to_number(length_arr)
 
-    encode_message_arr = np.hstack((entry_word_arr, secret_len_arr, secret_arr))
+    # decode the secret message
+    secret_text_start = entry_word_size + config.secret_bits_len
+    secret_text_end = secret_text_start + secret_len * config.ascii_bits_len
+    secret_text_arr = container_arr_flat[secret_text_start:secret_text_end]
+    secret_text = _array_to_text(secret_text_arr)
 
-    if container_arr_flat.size < encode_message_arr.size:
-        raise InsufficientContainerImageShapeException('Container image is too small')
-
-    container_arr_flat[:encode_message_arr.size] = \
-        (container_arr_flat[:encode_message_arr.size] & MASK) \
-        + encode_message_arr
-    container_arr = container_arr_flat.reshape(container_arr.shape)
-
-    container_image = Image.fromarray(container_arr)
-
-    return container_image
+    return secret_text
