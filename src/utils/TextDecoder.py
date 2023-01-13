@@ -39,7 +39,9 @@ def decode(container_image: Image):
         raise NoSecretTextException('No secret text found in the image')
 
     # read length of the secret message
-    length_arr = container_arr_flat[entry_word_size:config.secret_bits_len]
+    length_arr_start = entry_word_size
+    length_arr_end = entry_word_size + config.secret_bits_len
+    length_arr = container_arr_flat[length_arr_start:length_arr_end]
     secret_len = _array_to_number(length_arr)
 
     # decode the secret message

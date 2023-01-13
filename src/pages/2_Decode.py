@@ -6,7 +6,7 @@ import io
 
 from PIL import Image, UnidentifiedImageError
 
-from utils import config, ImageDecoder
+from utils import config, ImageDecoder, TextDecoder
 
 
 def get_image_info(image: Image):
@@ -32,6 +32,7 @@ def display_image(im: Image):
 def main():
     # init
     encoded_image = None
+    secret_text = None
 
     st.title('Steganograf - Decoder')
 
@@ -44,9 +45,16 @@ def main():
         else:
             display_image(encoded_image)
 
-    bits_no = st.slider('Number of bits to decode the secret image', min_value=1, max_value=8, value=config.BITS_NO)
-
     if encoded_image is not None:
+        try:
+            secret_text = TextDecoder.decode(encoded_image)
+        except TextDecoder.NoSecretTextException as e:
+            pass
+        else:
+            'Secret text: ', st.write(secret_text)
+
+    if encoded_image is not None and secret_text is None:
+        bits_no = st.slider('Number of bits to decode the secret image', min_value=1, max_value=8, value=config.BITS_NO)
         hidden_image = ImageDecoder.decode(encoded_image, bits_no)
         st.image(hidden_image)
 

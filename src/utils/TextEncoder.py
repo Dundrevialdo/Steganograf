@@ -34,7 +34,7 @@ def encode(container_image: Image, secret: str):
     container_arr_flat = container_arr.flatten()
 
     secret_arr = _text_to_array(secret)
-    secret_len = secret_arr.size / config.ascii_bits_len
+    secret_len = int(secret_arr.size / config.ascii_bits_len)
     if 0 == secret_len:
         raise NoAsciiCharsInSecretException('No ASCII characters found in the secret message')
 
