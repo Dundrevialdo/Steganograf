@@ -11,22 +11,6 @@ from PIL import Image, UnidentifiedImageError
 from utils import config, ImageEncoder
 
 
-def parse_args(mock_args=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-c', '--container',
-        default='data/Carina.jpg'
-    )
-    parser.add_argument(
-        '-s', '--secret',
-        default='data/Gargulec.webp'
-    )
-
-    args = parser.parse_args(mock_args)
-
-    return args
-
-
 def get_image_info(image: Image):
     info = {
         'Mode': image.mode,
