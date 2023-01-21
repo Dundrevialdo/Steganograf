@@ -1,46 +1,8 @@
 #!/usr/bin/env python
 
 import io
-import argparse
-
 import streamlit as st
-import pandas as pd
-
-from PIL import Image, UnidentifiedImageError
-
-from utils import config, ImageEncoder, TextEncoder
-
-
-def get_image_info(image: Image):
-    info = {
-        'Mode': image.mode,
-        'Width': image.size[0],
-        'Height': image.size[1],
-    }
-    info_df = pd.DataFrame(info, index=[0])
-    return info_df
-
-
-def display_image(im: Image):
-    im_info = get_image_info(im)
-    im_col, info_col = st.columns([2, 1])
-    with im_col:
-        st.image(im)
-    with info_col:
-        st.write(im_info)
-    return im
-
-
-def load_file(upload):
-    try:
-        image = Image.open(upload)
-    except UnidentifiedImageError:
-        f'Failed to load the file.'
-        image = None
-    else:
-        display_image(image)
-
-    return image
+from utils import config, ImageEncoder, TextEncoder, common
 
 
 def main():
@@ -54,14 +16,14 @@ def main():
 
     container_upload = st.file_uploader('Choose a container image file')
     if container_upload:
-        container_image = load_file(container_upload)
+        container_image = common.load_file(container_upload)
 
     encode_type = st.radio('What to encode?', ['Image', 'Text'])
 
     if 'Image' == encode_type:
         secret_upload = st.file_uploader('Choose a secret image file')
         if secret_upload:
-            secret_image = load_file(secret_upload)
+            secret_image = common.load_file(secret_upload)
         bits_no = st.slider('Number of bits to encode the secret image', min_value=1, max_value=8, value=config.BITS_NO)
     elif 'Text' == encode_type:
         secret_text = st.text_area('Your secret message - max 255 ASCII characters')

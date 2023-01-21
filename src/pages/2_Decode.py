@@ -1,32 +1,9 @@
 #!/usr/bin/env python
 
-import streamlit as st
-import pandas as pd
 import io
-
+import streamlit as st
 from PIL import Image, UnidentifiedImageError
-
-from utils import config, ImageDecoder, TextDecoder
-
-
-def get_image_info(image: Image):
-    info = {
-        'Mode': image.mode,
-        'Width': image.size[0],
-        'Height': image.size[1],
-    }
-    info_df = pd.DataFrame(info, index=[0])
-    return info_df
-
-
-def display_image(im: Image):
-    im_info = get_image_info(im)
-    im_col, info_col = st.columns([2, 1])
-    with im_col:
-        st.image(im)
-    with info_col:
-        im_info
-    return im
+from utils import config, ImageDecoder, TextDecoder, common
 
 
 def main():
@@ -43,7 +20,7 @@ def main():
         except UnidentifiedImageError:
             f'Failed to load the file.'
         else:
-            display_image(encoded_image)
+            common.display_image(encoded_image)
 
     if encoded_image is not None:
         try:
